@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Item<V> {
     value: V,
     weight: usize,
