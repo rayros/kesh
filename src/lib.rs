@@ -62,14 +62,13 @@ where
             return Err(CacheError::CapacityExceeded);
         }
 
-        self.used_capacity += weight;
-
         if self.hash.contains_key(&key) {
             return Err(CacheError::ItemExist);
         }
 
         let item = Item { value, weight };
 
+        self.used_capacity += weight;
         self.hash.insert(key, item);
         self.vec_deque.push_back(key);
 
