@@ -1,3 +1,7 @@
+use std::collections::{HashMap, VecDeque};
+use std::fmt::Debug;
+use std::hash::Hash;
+
 #[derive(Debug)]
 struct Item<V> {
     value: V,
@@ -6,8 +10,8 @@ struct Item<V> {
 
 #[derive(Debug)]
 pub struct Cache<K, V> {
-    hash: std::collections::HashMap<K, Item<V>>,
-    vec_deque: std::collections::VecDeque<K>,
+    hash: HashMap<K, Item<V>>,
+    vec_deque: VecDeque<K>,
     used_capacity: usize,
     capacity: usize,
 }
@@ -22,14 +26,14 @@ pub enum CacheError {
 
 impl<K, V> Cache<K, V>
 where
-    K: std::cmp::Eq + std::hash::Hash + Copy + std::fmt::Debug,
-    V: std::fmt::Debug,
+    K: Eq + Hash + Copy + Debug,
+    V: Debug,
 {
     #[must_use]
     pub fn new(capacity: usize) -> Self {
         Cache {
-            hash: std::collections::HashMap::new(),
-            vec_deque: std::collections::VecDeque::new(),
+            hash: HashMap::new(),
+            vec_deque: VecDeque::new(),
             used_capacity: 0,
             capacity,
         }
