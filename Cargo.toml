@@ -3,5 +3,6 @@ name = "kesh"
 version = "0.1.0"
 edition = "2021"
 description = "Cache library"
+license = "MIT"
 
 [dependencies]
