@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "lru-cache-with-weight"
+name = "kesh"
 version = "0.1.0"
