@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -6,7 +7,7 @@ use std::hash::Hash;
 struct Item<V> {
     value: V,
     weight: usize,
-    hit: bool,
+    freq: usize,
     removed: bool,
 }
 
@@ -16,6 +17,7 @@ pub struct FIFOReinsertion<K, V> {
     vec_deque: VecDeque<K>,
     used_capacity: usize,
     capacity: usize,
+    max_freq: usize,
 }
 
 #[derive(Debug)]
@@ -37,6 +39,18 @@ where
             vec_deque: VecDeque::new(),
             used_capacity: 0,
             capacity,
+            max_freq: 3,
+        }
+    }
+
+    #[must_use]
+    pub fn new_with_max_freq(capacity: usize, max_freq: usize) -> Self {
+        FIFOReinsertion {
+            hash: HashMap::new(),
+            vec_deque: VecDeque::new(),
+            used_capacity: 0,
+            capacity,
+            max_freq,
         }
     }
 
@@ -46,7 +60,7 @@ where
                 return None;
             }
 
-            item.hit = true;
+            item.freq = min(item.freq + 1, self.max_freq);
             Some(&item.value)
         } else {
             None
@@ -79,7 +93,7 @@ where
             Item {
                 value,
                 weight,
-                hit: false,
+                freq: 0,
                 removed: false,
             },
         );
@@ -126,9 +140,9 @@ where
                 continue;
             }
 
-            if item.hit {
+            if item.freq > 0 {
                 self.vec_deque.push_back(key);
-                item.hit = false;
+                item.freq -= 1;
                 continue;
             }
 
@@ -205,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn it_should_hit() {
+    fn it_should_hit_and_stay_in_cache() {
         let mut cache = FIFOReinsertion::new(10);
         cache.put(1, 1, 2).unwrap();
         cache.put(2, 2, 3).unwrap();
