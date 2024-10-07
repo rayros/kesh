@@ -305,4 +305,24 @@ mod tests {
         assert_eq!(cache.hash.len(), 2);
         assert_eq!(cache.used_capacity, 3);
     }
+
+    #[test]
+    fn it_should_return_removed_key() {
+        let mut cache = FIFOReinsertion::new(3);
+
+        cache.put(1, 1, 1).unwrap();
+        cache.put(2, 2, 2).unwrap();
+
+        let removed_keys = cache.put(3, 3, 1).unwrap().unwrap();
+
+        assert_eq!(removed_keys, vec![1]);
+        assert_eq!(cache.get(1), None);
+        assert_eq!(cache.get(2), Some(&2));
+        assert_eq!(cache.get(3), Some(&3));
+        assert_eq!(cache.get(4), None);
+
+        assert_eq!(cache.vec_deque.len(), 2);
+        assert_eq!(cache.hash.len(), 2);
+        assert_eq!(cache.used_capacity, 3);
+    }
 }
