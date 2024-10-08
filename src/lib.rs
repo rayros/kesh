@@ -1,9 +1,10 @@
 pub mod fifo;
 pub mod fifo_reinserion;
+pub mod ghost_fifo;
 
 pub use fifo::FIFO;
 pub use fifo_reinserion::FIFOReinsertion;
-
+pub use ghost_fifo::GhostFIFO;
 #[cfg(test)]
 mod tests {
     use super::*;
