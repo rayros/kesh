@@ -67,12 +67,22 @@ where
         }
     }
 
-    fn update(&mut self, key: K, value: V, weight: usize) -> Option<RemovedKeys<K>> {
+    fn update(
+        &mut self,
+        key: K,
+        value: V,
+        weight: usize,
+        freq: Option<usize>,
+    ) -> Option<RemovedKeys<K>> {
         let item = self.hash.get_mut(&key).unwrap();
         item.value = value;
         let old_weight = item.weight;
         item.weight = weight;
         item.removed = false;
+
+        if let Some(freq) = freq {
+            item.freq = freq;
+        }
 
         if weight > old_weight {
             let needed_space = weight - old_weight;
@@ -85,7 +95,13 @@ where
         }
     }
 
-    fn insert(&mut self, key: K, value: V, weight: usize) -> Option<RemovedKeys<K>> {
+    pub fn insert(
+        &mut self,
+        key: K,
+        value: V,
+        weight: usize,
+        freq: Option<usize>,
+    ) -> Option<RemovedKeys<K>> {
         let removed_keys = self.free(weight, None);
         self.used_capacity += weight;
         self.hash.insert(
@@ -93,7 +109,7 @@ where
             Item {
                 value,
                 weight,
-                freq: 0,
+                freq: freq.unwrap_or(0),
                 removed: false,
             },
         );
@@ -117,9 +133,27 @@ where
         }
 
         if self.hash.contains_key(&key) {
-            Ok(self.update(key, value, weight))
+            Ok(self.update(key, value, weight, None))
         } else {
-            Ok(self.insert(key, value, weight))
+            Ok(self.insert(key, value, weight, None))
+        }
+    }
+
+    pub fn put_with_freq(
+        &mut self,
+        key: K,
+        value: V,
+        weight: usize,
+        freq: usize,
+    ) -> Result<Option<RemovedKeys<K>>, FIFOReinsertionError> {
+        if weight > self.capacity {
+            return Err(FIFOReinsertionError::BeyondCapacity);
+        }
+
+        if self.hash.contains_key(&key) {
+            Ok(self.update(key, value, weight, Some(freq)))
+        } else {
+            Ok(self.insert(key, value, weight, Some(freq)))
         }
     }
 

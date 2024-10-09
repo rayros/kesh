@@ -44,7 +44,7 @@ where
             }
             return true;
         }
-        return false;
+        false
     }
 
     fn update(&mut self, key: K, weight: usize) -> Option<RemovedKeys<K>> {
