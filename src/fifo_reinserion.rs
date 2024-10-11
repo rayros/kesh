@@ -29,7 +29,7 @@ type RemovedKeys<K> = Vec<K>;
 
 impl<K, V> FIFOReinsertion<K, V>
 where
-    K: Eq + Hash + Copy + Debug,
+    K: Eq + Hash + Debug + Clone,
     V: Debug,
 {
     #[must_use]
@@ -54,8 +54,8 @@ where
         }
     }
 
-    pub fn get(&mut self, key: K) -> Option<&V> {
-        if let Some(item) = self.hash.get_mut(&key) {
+    pub fn get(&mut self, key: &K) -> Option<&V> {
+        if let Some(item) = self.hash.get_mut(key) {
             if item.removed {
                 return None;
             }
@@ -69,7 +69,7 @@ where
 
     fn update(
         &mut self,
-        key: K,
+        key: &K,
         value: V,
         weight: usize,
         freq: Option<usize>,
@@ -97,7 +97,7 @@ where
 
     pub fn insert(
         &mut self,
-        key: K,
+        key: &K,
         value: V,
         weight: usize,
         freq: Option<usize>,
@@ -105,7 +105,7 @@ where
         let removed_keys = self.free(weight, None);
         self.used_capacity += weight;
         self.hash.insert(
-            key,
+            key.clone(),
             Item {
                 value,
                 weight,
@@ -113,7 +113,7 @@ where
                 removed: false,
             },
         );
-        self.vec_deque.push_back(key);
+        self.vec_deque.push_back(key.clone());
 
         removed_keys
     }
@@ -124,7 +124,7 @@ where
     /// Returns `CacheError::BeyondCapacity` if the weight is greater than the capacity.
     pub fn put(
         &mut self,
-        key: K,
+        key: &K,
         value: V,
         weight: usize,
     ) -> Result<Option<RemovedKeys<K>>, FIFOReinsertionError> {
@@ -141,7 +141,7 @@ where
 
     pub fn put_with_freq(
         &mut self,
-        key: K,
+        key: &K,
         value: V,
         weight: usize,
         freq: usize,
@@ -157,7 +157,7 @@ where
         }
     }
 
-    fn free(&mut self, weight: usize, ignore_key: Option<K>) -> Option<RemovedKeys<K>> {
+    fn free(&mut self, weight: usize, ignore_key: Option<&K>) -> Option<RemovedKeys<K>> {
         let mut removed_keys = vec![];
         while self.used_capacity + weight > self.capacity {
             let key = self.vec_deque.pop_front().unwrap();
@@ -169,7 +169,7 @@ where
                 continue;
             }
 
-            if Some(key) == ignore_key {
+            if Some(&key) == ignore_key {
                 self.vec_deque.push_back(key);
                 continue;
             }
@@ -192,7 +192,7 @@ where
         }
     }
 
-    pub fn remove(&mut self, key: K) {
+    pub fn remove(&mut self, key: &K) {
         let item = self.hash.get_mut(&key);
 
         if let Some(item) = item {
@@ -208,9 +208,9 @@ mod tests {
     #[test]
     fn it_works() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        assert_eq!(cache.get(1), Some(&1));
-        assert_eq!(cache.get(2), None);
+        cache.put(&1, 1, 2).unwrap();
+        assert_eq!(cache.get(&1), Some(&1));
+        assert_eq!(cache.get(&2), None);
 
         assert_eq!(cache.used_capacity, 2);
         assert_eq!(cache.capacity, 10);
@@ -219,17 +219,17 @@ mod tests {
     #[test]
     fn it_should_free_space() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        cache.put(2, 2, 3).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 2).unwrap();
+        cache.put(&2, 2, 3).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
         cache.free(5, None);
 
-        assert_eq!(cache.get(1), None);
-        assert_eq!(cache.get(2), None);
-        assert_eq!(cache.get(3), Some(&3));
-        assert_eq!(cache.get(4), Some(&4));
+        assert_eq!(cache.get(&1), None);
+        assert_eq!(cache.get(&2), None);
+        assert_eq!(cache.get(&3), Some(&3));
+        assert_eq!(cache.get(&4), Some(&4));
 
         assert_eq!(cache.used_capacity, 5);
     }
@@ -237,17 +237,17 @@ mod tests {
     #[test]
     fn it_should_remove() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        cache.put(2, 2, 3).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 2).unwrap();
+        cache.put(&2, 2, 3).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
-        cache.remove(2);
+        cache.remove(&2);
 
-        assert_eq!(cache.get(1), Some(&1));
-        assert_eq!(cache.get(2), None);
-        assert_eq!(cache.get(3), Some(&3));
-        assert_eq!(cache.get(4), Some(&4));
+        assert_eq!(cache.get(&1), Some(&1));
+        assert_eq!(cache.get(&2), None);
+        assert_eq!(cache.get(&3), Some(&3));
+        assert_eq!(cache.get(&4), Some(&4));
 
         assert_eq!(cache.used_capacity, 10);
     }
@@ -255,20 +255,20 @@ mod tests {
     #[test]
     fn it_should_hit_and_stay_in_cache() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        cache.put(2, 2, 3).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 2).unwrap();
+        cache.put(&2, 2, 3).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
-        cache.get(1);
+        cache.get(&1);
 
-        cache.put(5, 5, 5).unwrap();
+        cache.put(&5, 5, 5).unwrap();
 
-        assert_eq!(cache.get(1), Some(&1));
-        assert_eq!(cache.get(2), None);
-        assert_eq!(cache.get(3), None);
-        assert_eq!(cache.get(4), Some(&4));
-        assert_eq!(cache.get(5), Some(&5));
+        assert_eq!(cache.get(&1), Some(&1));
+        assert_eq!(cache.get(&2), None);
+        assert_eq!(cache.get(&3), None);
+        assert_eq!(cache.get(&4), Some(&4));
+        assert_eq!(cache.get(&5), Some(&5));
 
         assert_eq!(cache.used_capacity, 8);
     }
@@ -277,28 +277,28 @@ mod tests {
     #[should_panic = "BeyondCapacity"]
     fn it_should_panic() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        cache.put(2, 2, 3).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 2).unwrap();
+        cache.put(&2, 2, 3).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
-        cache.put(5, 5, 11).unwrap();
+        cache.put(&5, 5, 11).unwrap();
     }
 
     #[test]
     fn it_should_update() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 2).unwrap();
-        cache.put(2, 2, 3).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 2).unwrap();
+        cache.put(&2, 2, 3).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
-        cache.put(1, 10, 3).unwrap();
+        cache.put(&1, 10, 3).unwrap();
 
-        assert_eq!(cache.get(1), Some(&10));
-        assert_eq!(cache.get(2), None);
-        assert_eq!(cache.get(3), Some(&3));
-        assert_eq!(cache.get(4), Some(&4));
+        assert_eq!(cache.get(&1), Some(&10));
+        assert_eq!(cache.get(&2), None);
+        assert_eq!(cache.get(&3), Some(&3));
+        assert_eq!(cache.get(&4), Some(&4));
 
         assert_eq!(cache.used_capacity, 8);
     }
@@ -306,17 +306,17 @@ mod tests {
     #[test]
     fn it_should_update_to_lower_weight() {
         let mut cache = FIFOReinsertion::new(10);
-        cache.put(1, 1, 3).unwrap();
-        cache.put(2, 2, 2).unwrap();
-        cache.put(3, 3, 4).unwrap();
-        cache.put(4, 4, 1).unwrap();
+        cache.put(&1, 1, 3).unwrap();
+        cache.put(&2, 2, 2).unwrap();
+        cache.put(&3, 3, 4).unwrap();
+        cache.put(&4, 4, 1).unwrap();
 
-        cache.put(1, 10, 2).unwrap();
+        cache.put(&1, 10, 2).unwrap();
 
-        assert_eq!(cache.get(1), Some(&10));
-        assert_eq!(cache.get(2), Some(&2));
-        assert_eq!(cache.get(3), Some(&3));
-        assert_eq!(cache.get(4), Some(&4));
+        assert_eq!(cache.get(&1), Some(&10));
+        assert_eq!(cache.get(&2), Some(&2));
+        assert_eq!(cache.get(&3), Some(&3));
+        assert_eq!(cache.get(&4), Some(&4));
 
         assert_eq!(cache.used_capacity, 9);
     }
@@ -325,12 +325,12 @@ mod tests {
     fn it_should_remove_removed_key() {
         let mut cache = FIFOReinsertion::new(2);
 
-        cache.put(1, 1, 1).unwrap();
-        cache.remove(1);
-        cache.put(2, 2, 2).unwrap();
+        cache.put(&1, 1, 1).unwrap();
+        cache.remove(&1);
+        cache.put(&2, 2, 2).unwrap();
 
-        assert_eq!(cache.get(1), None);
-        assert_eq!(cache.get(2), Some(&2));
+        assert_eq!(cache.get(&1), None);
+        assert_eq!(cache.get(&2), Some(&2));
         assert_eq!(cache.vec_deque.len(), 1);
         assert_eq!(cache.hash.len(), 1);
         assert_eq!(cache.used_capacity, 2);
@@ -340,14 +340,14 @@ mod tests {
     fn it_should_remove_removed_key_2() {
         let mut cache = FIFOReinsertion::new(3);
 
-        cache.put(1, 1, 1).unwrap();
-        cache.remove(1);
-        cache.put(2, 2, 2).unwrap();
-        cache.put(3, 3, 1).unwrap();
+        cache.put(&1, 1, 1).unwrap();
+        cache.remove(&1);
+        cache.put(&2, 2, 2).unwrap();
+        cache.put(&3, 3, 1).unwrap();
 
-        assert_eq!(cache.get(1), None);
-        assert_eq!(cache.get(2), Some(&2));
-        assert_eq!(cache.get(3), Some(&3));
+        assert_eq!(cache.get(&1), None);
+        assert_eq!(cache.get(&2), Some(&2));
+        assert_eq!(cache.get(&3), Some(&3));
 
         assert_eq!(cache.vec_deque.len(), 2);
         assert_eq!(cache.hash.len(), 2);
@@ -358,16 +358,16 @@ mod tests {
     fn it_should_return_removed_key() {
         let mut cache = FIFOReinsertion::new(3);
 
-        cache.put(1, 1, 1).unwrap();
-        cache.put(2, 2, 2).unwrap();
+        cache.put(&1, 1, 1).unwrap();
+        cache.put(&2, 2, 2).unwrap();
 
-        let removed_keys = cache.put(3, 3, 1).unwrap().unwrap();
+        let removed_keys = cache.put(&3, 3, 1).unwrap().unwrap();
 
         assert_eq!(removed_keys, vec![1]);
-        assert_eq!(cache.get(1), None);
-        assert_eq!(cache.get(2), Some(&2));
-        assert_eq!(cache.get(3), Some(&3));
-        assert_eq!(cache.get(4), None);
+        assert_eq!(cache.get(&1), None);
+        assert_eq!(cache.get(&2), Some(&2));
+        assert_eq!(cache.get(&3), Some(&3));
+        assert_eq!(cache.get(&4), None);
 
         assert_eq!(cache.vec_deque.len(), 2);
         assert_eq!(cache.hash.len(), 2);
