@@ -92,7 +92,7 @@ where
             return Err(GhostFIFOError::BeyondCapacity);
         }
 
-        if self.hash.contains_key(&key) {
+        if self.hash.contains_key(key) {
             Ok(self.update(key, weight))
         } else {
             Ok(self.insert(key, weight))

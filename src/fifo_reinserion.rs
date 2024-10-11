@@ -74,7 +74,7 @@ where
         weight: usize,
         freq: Option<usize>,
     ) -> Option<RemovedKeys<K>> {
-        let item = self.hash.get_mut(&key).unwrap();
+        let item = self.hash.get_mut(key).unwrap();
         item.value = value;
         let old_weight = item.weight;
         item.weight = weight;
@@ -132,7 +132,7 @@ where
             return Err(FIFOReinsertionError::BeyondCapacity);
         }
 
-        if self.hash.contains_key(&key) {
+        if self.hash.contains_key(key) {
             Ok(self.update(key, value, weight, None))
         } else {
             Ok(self.insert(key, value, weight, None))
@@ -150,7 +150,7 @@ where
             return Err(FIFOReinsertionError::BeyondCapacity);
         }
 
-        if self.hash.contains_key(&key) {
+        if self.hash.contains_key(key) {
             Ok(self.update(key, value, weight, Some(freq)))
         } else {
             Ok(self.insert(key, value, weight, Some(freq)))
@@ -193,7 +193,7 @@ where
     }
 
     pub fn remove(&mut self, key: &K) {
-        let item = self.hash.get_mut(&key);
+        let item = self.hash.get_mut(key);
 
         if let Some(item) = item {
             item.removed = true;
